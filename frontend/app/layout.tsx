@@ -1,15 +1,20 @@
-import StoreNav from '@/components/shop/StoreNav';
+import type { Metadata } from 'next';
 import React from 'react';
+import './globals.css';
 
-export default function StoreLayout({
+export const metadata: Metadata = {
+  title: 'E-Store',
+  description: 'A modern e-commerce platform',
+};
+
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <StoreNav />
-      {children}
-    </>
+    <html lang="en">
+      <body className="font-sans antialiased">{children}</body>
+    </html>
   );
 }

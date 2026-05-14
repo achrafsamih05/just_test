@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload as JwtVerifyPayload, VerifyErrors } from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -10,53 +10,86 @@ export interface AuthRequest extends Request {
 }
 
 /**
- * Middleware to verify JWT token and attach user data to request
+ * Middleware to verify JWT token and attach user data to request.
  */
-export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticateToken = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
+    res.status(401).json({ error: 'Access token required' });
+    return;
   }
 
-  jwt.verify(token, process.env.JWT_SECRET as string, (err: any, user: any) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    console.error('JWT_SECRET is not set');
+    res.status(500).json({ error: 'Server misconfiguration' });
+    return;
+  }
+
+  jwt.verify(
+    token,
+    secret,
+    (err: VerifyErrors | null, decoded: string | JwtVerifyPayload | undefined) => {
+      if (err || !decoded || typeof decoded === 'string') {
+        res.status(403).json({ error: 'Invalid or expired token' });
+        return;
+      }
+      req.user = {
+        id: String(decoded.id),
+        email: String(decoded.email),
+        role: decoded.role === 'admin' ? 'admin' : 'customer',
+      };
+      next();
     }
-    req.user = user;
-    next();
-  });
+  );
 };
 
 /**
- * Middleware to check if user has admin role
- * Must be used AFTER authenticateToken
+ * Middleware to check if user has admin role.
+ * Must be used AFTER authenticateToken.
  */
-export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+    res.status(401).json({ error: 'Authentication required' });
+    return;
   }
 
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+    res.status(403).json({ error: 'Admin access required' });
+    return;
   }
 
   next();
 };
 
 /**
- * Middleware to check if user is owner of resource or is admin
+ * Middleware to check if user is owner of resource or is admin.
  */
-export const requireOwnerOrAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireOwnerOrAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+    res.status(401).json({ error: 'Authentication required' });
+    return;
   }
 
   const resourceUserId = req.params.userId || req.body.userId;
 
   if (req.user.id !== resourceUserId && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Insufficient permissions' });
+    res.status(403).json({ error: 'Insufficient permissions' });
+    return;
   }
 
   next();
