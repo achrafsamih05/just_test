@@ -1,19 +1,15 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import StoreNav from '@/components/shop/StoreNav';
+import React from 'react';
 
-export const metadata: Metadata = {
-  title: 'E-commerce Admin Dashboard',
-  description: 'Modern admin dashboard for product management',
-};
-
-export default function RootLayout({
+export default function StoreLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
+    <>
+      <StoreNav />
+      {children}
+    </>
   );
 }
