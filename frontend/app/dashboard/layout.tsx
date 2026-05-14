@@ -1,3 +1,5 @@
+"use client"; // <--- هذا السطر هو مفتاح الحل
+
 import React, { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -14,7 +16,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    // Check if user is admin
+    // التحقق مما إذا كان المستخدم أدمن
     if (!isAdmin()) {
       router.push('/login');
       return;
