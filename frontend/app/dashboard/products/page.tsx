@@ -7,37 +7,24 @@ import ProductTable from '@/components/dashboard/ProductTable';
 import AddProductModal from '@/components/dashboard/modals/AddProductModal';
 import EditProductModal from '@/components/dashboard/modals/EditProductModal';
 import DeleteConfirmModal from '@/components/dashboard/modals/DeleteConfirmModal';
+import type { Product } from '@/types';
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  stock_quantity: number;
-  category_id: string;
-  image_url: string | null;
-  sku: string | null;
-  is_active: boolean;
-  rating: number;
-  created_at: string;
-  updated_at: string;
-}
+type ToastType = 'success' | 'error' | 'info';
 
-interface Toast {
+interface ToastMessage {
   id: string;
-  type: 'success' | 'error' | 'info';
+  type: ToastType;
   message: string;
 }
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
 
-  // Fetch products on mount
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -56,9 +43,9 @@ export default function ProductsPage() {
     }
   };
 
-  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const toast = { id, type, message };
+  const addToast = (message: string, type: ToastType = 'info') => {
+    const id = Math.random().toString(36).slice(2, 11);
+    const toast: ToastMessage = { id, type, message };
     setToasts((prev) => [...prev, toast]);
 
     setTimeout(() => {
@@ -87,8 +74,9 @@ export default function ProductsPage() {
       setProducts((prev) => [product, ...prev]);
       setShowAddModal(false);
       addToast('Product added successfully', 'success');
-    } catch (error: any) {
-      addToast(error.message || 'Failed to add product', 'error');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to add product';
+      addToast(message, 'error');
       console.error(error);
     }
   };
@@ -119,8 +107,9 @@ export default function ProductsPage() {
       setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
       setEditingProduct(null);
       addToast('Product updated successfully', 'success');
-    } catch (error: any) {
-      addToast(error.message || 'Failed to update product', 'error');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update product';
+      addToast(message, 'error');
       console.error(error);
     }
   };
@@ -148,15 +137,15 @@ export default function ProductsPage() {
       setProducts((prev) => prev.filter((p) => p.id !== deletingProduct.id));
       setDeletingProduct(null);
       addToast('Product deleted successfully', 'success');
-    } catch (error: any) {
-      addToast(error.message || 'Failed to delete product', 'error');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to delete product';
+      addToast(message, 'error');
       console.error(error);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Product Management</h2>
         <button
@@ -170,13 +159,12 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      {/* Loading State */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin">
             <svg className="w-8 h-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
           </div>
         </div>
@@ -186,7 +174,7 @@ export default function ProductsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
           </svg>
           <p className="text-gray-500 text-lg">No products yet</p>
-          <p className="text-gray-400 text-sm">Click "Add Product" to get started</p>
+          <p className="text-gray-400 text-sm">Click &quot;Add Product&quot; to get started</p>
         </div>
       ) : (
         <ProductTable
@@ -196,14 +184,12 @@ export default function ProductsPage() {
         />
       )}
 
-      {/* Toasts */}
       <div className="fixed bottom-4 right-4 space-y-2 z-50">
         {toasts.map((toast) => (
           <Toast key={toast.id} type={toast.type} message={toast.message} />
         ))}
       </div>
 
-      {/* Modals */}
       {showAddModal && (
         <AddProductModal
           onClose={() => setShowAddModal(false)}

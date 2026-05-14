@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface CartItem {
   id: string;
@@ -9,7 +9,7 @@ export interface CartItem {
   image_url: string | null;
 }
 
-interface CartStore {
+interface CartState {
   items: CartItem[];
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
@@ -19,13 +19,17 @@ interface CartStore {
   getTotalPrice: () => number;
 }
 
-// قمنا بإضافة () بعد create لتمكين الـ Middleware من استنتاج الأنواع
-export const useCart = create<CartStore>()(
+/**
+ * Note the `create<CartState>()(...)` curried call — required by zustand
+ * v4 when combining `persist` (or any middleware) with TypeScript so the
+ * inner state type is inferred correctly.
+ */
+export const useCart = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
 
-      addItem: (newItem: CartItem) =>
+      addItem: (newItem) =>
         set((state) => {
           const existing = state.items.find((item) => item.id === newItem.id);
           if (existing) {
@@ -40,12 +44,12 @@ export const useCart = create<CartStore>()(
           return { items: [...state.items, newItem] };
         }),
 
-      removeItem: (id: string) =>
+      removeItem: (id) =>
         set((state) => ({
           items: state.items.filter((item) => item.id !== id),
         })),
 
-      updateQuantity: (id: string, quantity: number) =>
+      updateQuantity: (id, quantity) =>
         set((state) => {
           if (quantity <= 0) {
             return { items: state.items.filter((item) => item.id !== id) };
@@ -59,16 +63,25 @@ export const useCart = create<CartStore>()(
 
       clearCart: () => set({ items: [] }),
 
-      getTotalItems: () => {
-        return get().items.reduce((sum, item) => sum + item.quantity, 0);
-      },
+      getTotalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
 
-      getTotalPrice: () => {
-        return get().items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      },
+      getTotalPrice: () =>
+        get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     }),
     {
-      name: 'cart-store', // اسم التخزين في الـ LocalStorage
+      name: 'cart-store',
+      storage: createJSONStorage(() => {
+        // Guard against SSR where `localStorage` does not exist.
+        if (typeof window === 'undefined') {
+          return {
+            getItem: () => null,
+            setItem: () => undefined,
+            removeItem: () => undefined,
+          };
+        }
+        return window.localStorage;
+      }),
+      partialize: (state) => ({ items: state.items }),
     }
   )
 );

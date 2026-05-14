@@ -1,46 +1,47 @@
 import 'dotenv/config';
-import { Pool } from 'pg';
 import { createApp } from './app';
+import { getPool } from './db';
 
-// Database connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+/**
+ * Local / containerized server entry point.
+ * On Vercel, this file is NOT executed; `api/index.ts` exports the handler instead.
+ */
 
-// Test database connection
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-});
+const pool = getPool();
 
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
+// Lightweight startup connectivity check (does NOT exit on failure so
+// the process can come up and serve a /health endpoint useful for diagnostics).
+pool
+  .query('SELECT NOW()')
+  .then((res) => {
+    console.log('Database connected:', res.rows[0]);
+  })
+  .catch((err) => {
     console.error('Database connection failed:', err);
-    process.exit(1);
-  } else {
-    console.log('✓ Database connected:', res.rows[0]);
-  }
-});
+  });
 
-// Create Express app
 const app = createApp(pool);
 
-// Start server
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || '5000', 10);
 app.listen(PORT, () => {
-  console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📊 API Documentation: http://localhost:${PORT}/api`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/health\n`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Health check:    http://localhost:${PORT}/health`);
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  pool.end((err) => {
-    if (err) {
+const shutdown = (signal: string) => {
+  console.log(`${signal} received, shutting down gracefully...`);
+  pool
+    .end()
+    .then(() => {
+      console.log('Database pool closed');
+      process.exit(0);
+    })
+    .catch((err) => {
       console.error('Error closing pool:', err);
       process.exit(1);
-    }
-    console.log('Database pool closed');
-    process.exit(0);
-  });
-});
+    });
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

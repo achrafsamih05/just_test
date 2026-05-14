@@ -1,20 +1,23 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useCart } from '@/lib/store';
 import CartSidebar from '@/components/shop/CartSidebar';
-import { useState } from 'react';
 
 export default function StoreNav() {
   const [cartOpen, setCartOpen] = useState(false);
-  const totalItems = useCart((state) => state.getTotalItems());
+  // Subscribe to `items` rather than calling `getTotalItems()` inside a selector,
+  // which would create a new value reference on every render and trigger
+  // Zustand's "getSnapshot should be cached" warning under React 18 strict mode.
+  const items = useCart((state) => state.items);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <>
       <nav className="sticky top-0 z-30 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
             <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">E</span>
@@ -22,7 +25,6 @@ export default function StoreNav() {
               <span className="font-bold text-xl text-gray-900">E-Store</span>
             </Link>
 
-            {/* Navigation Links */}
             <div className="hidden md:flex items-center space-x-8">
               <Link href="/" className="text-gray-700 hover:text-gray-900 font-medium">
                 Home
@@ -35,10 +37,10 @@ export default function StoreNav() {
               </Link>
             </div>
 
-            {/* Cart Button */}
             <button
               onClick={() => setCartOpen(true)}
               className="relative p-2 text-gray-700 hover:text-gray-900"
+              aria-label="Open cart"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -58,7 +60,6 @@ export default function StoreNav() {
         </div>
       </nav>
 
-      {/* Cart Sidebar */}
       <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );

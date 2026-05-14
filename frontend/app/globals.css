@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html {
   scroll-behavior: smooth;
 }
@@ -31,11 +35,6 @@ body {
 
 .animate-slide-in {
   animation: slideIn 0.3s ease-out;
-}
-
-/* Smooth transitions */
-.transition {
-  @apply transition-all duration-200;
 }
 
 /* Scrollbar styling */
