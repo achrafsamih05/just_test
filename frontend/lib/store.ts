@@ -19,7 +19,8 @@ interface CartStore {
   getTotalPrice: () => number;
 }
 
-export const useCart = create<CartStore>(
+// قمنا بإضافة () بعد create لتمكين الـ Middleware من استنتاج الأنواع
+export const useCart = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
@@ -67,7 +68,7 @@ export const useCart = create<CartStore>(
       },
     }),
     {
-      name: 'cart-store',
+      name: 'cart-store', // اسم التخزين في الـ LocalStorage
     }
   )
 );
